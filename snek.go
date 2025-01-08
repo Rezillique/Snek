@@ -45,13 +45,23 @@ func (sb *SnakeBody) ResetPos(width int, height int) {
 
 func (sp *SnakePart) GetUpdatedPart(sb *SnakeBody, width int, height int) SnakePart {
 	newPart := *sp
-	newPart.X = (newPart.X + sb.Xspeed) % width
-	if newPart.X < 0 {
-		newPart.X += width
+	newX := newPart.X + sb.Xspeed
+	newY := newPart.Y + sb.Yspeed
+
+	// Keep snake within boundaries
+	if newX <= 0 {
+		newX = 1
+	} else if newX >= width-1 {
+		newX = width - 2
 	}
-	newPart.Y = (newPart.Y + sb.Yspeed) % height
-	if newPart.Y < 0 {
-		newPart.Y += height
+
+	if newY <= 0 {
+		newY = 1
+	} else if newY >= height-1 {
+		newY = height - 2
 	}
+
+	newPart.X = newX
+	newPart.Y = newY
 	return newPart
 }

@@ -20,8 +20,15 @@ func main() {
 	defStyle := tcell.StyleDefault.Background(tcell.ColorBlack).Foreground(tcell.ColorWhite)
 	screen.SetStyle(defStyle)
 
+	snakeStyle := tcell.StyleDefault.Background(tcell.ColorGreen).Foreground(tcell.ColorGreen)
+	foodStyle := tcell.StyleDefault.Background(tcell.ColorRed).Foreground(tcell.ColorRed)
+	powerStyle := tcell.StyleDefault.Background(tcell.ColorYellow).Foreground(tcell.ColorYellow)
+
 	game := Game{
-		Screen: screen,
+		Screen:     screen,
+		snakeStyle: snakeStyle,
+		foodStyle:  foodStyle,
+		powerStyle: powerStyle,
 	}
 	go game.Run()
 	for {
