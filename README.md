@@ -3,3 +3,4 @@ Second after the downloading the files open a terminal in there and run this com
 "go run Snek *.go"
 
 After the game over press "y" play again or "n" to close it.
+Esc will close the terminal window too.
