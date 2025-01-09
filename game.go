@@ -1,7 +1,10 @@
 package main
 
 import (
+	"fmt"
+	"log"
 	"math/rand"
+	"os"
 	"strconv"
 	"time"
 
@@ -9,18 +12,20 @@ import (
 )
 
 type Game struct {
-	Screen     tcell.Screen
-	snakeBody  SnakeBody
-	FoodPos    SnakePart
-	WallParts  []SnakePart
-	Score      int
-	GameOver   bool
-	snakeStyle tcell.Style
-	foodStyle  tcell.Style
-	powerStyle tcell.Style
-	wallStyle  tcell.Style
-	gridValues map[SnakePart]int // Store grid numbers
-	collected  []int             // Store collected numbers
+	Screen       tcell.Screen
+	snakeBody    SnakeBody
+	FoodPos      SnakePart
+	WallParts    []SnakePart
+	Score        int
+	GameOver     bool
+	snakeStyle   tcell.Style
+	foodStyle    tcell.Style
+	powerStyle   tcell.Style
+	wallStyle    tcell.Style
+	gridValues   map[SnakePart]int // Store grid numbers
+	collected    []int             // Store collected numbers
+	menuSelected int               // Track selected menu item
+	defStyle     tcell.Style
 }
 
 const (
@@ -39,10 +44,9 @@ func drawParts(s tcell.Screen, snakeParts []SnakePart, foodPos SnakePart, snakeS
 	}
 }
 
-func drawText(s tcell.Screen, x1, y1, x2, y2 int, text string) {
+func drawText(s tcell.Screen, x1, y1, x2, y2 int, text string, style tcell.Style) {
 	row := y1
 	col := x1
-	style := tcell.StyleDefault.Background(tcell.ColorBlack).Foreground(tcell.ColorWhite)
 	for _, r := range text {
 		s.SetContent(col, row, r, nil, style)
 		col++
@@ -87,6 +91,16 @@ func (g *Game) AddWalls(width, height int) {
 			}
 		}
 	}
+}
+
+func (g *Game) generatePassword() string {
+	// Simple password generation based on score and timestamp
+	timestamp := time.Now().Unix()
+	return fmt.Sprintf("%d%d", g.Score, timestamp%1000)
+}
+
+func (g *Game) savePassword(password string) error {
+	return os.WriteFile("password.txt", []byte(password), 0644)
 }
 
 func (g *Game) Run() {
@@ -150,11 +164,13 @@ func (g *Game) Run() {
 			}()
 		}
 		if checkCollision(g.snakeBody.Parts[:len(g.snakeBody.Parts)-1], g.snakeBody.Parts[len(g.snakeBody.Parts)-1]) {
+			g.GameOver = true
+			g.DrawGameOver()
 			break
 		}
 		g.snakeBody.Update(GAME_WIDTH, GAME_HEIGHT, longerSnake)
 		drawParts(g.Screen, g.snakeBody.Parts, g.FoodPos, g.snakeStyle, defStyle)
-		drawText(g.Screen, 1, 1, 8+len(strconv.Itoa(g.Score)), 1, "Score: "+strconv.Itoa(g.Score))
+		drawText(g.Screen, 1, 1, 8+len(strconv.Itoa(g.Score)), 1, "Score: "+strconv.Itoa(g.Score), defStyle)
 
 		// Draw walls
 		for _, wall := range g.WallParts {
@@ -180,14 +196,109 @@ func (g *Game) Run() {
 		}
 	}
 	g.GameOver = true
-	numbers := ""
-	for i, num := range g.collected {
-		if i > 0 {
-			numbers += ","
-		}
-		numbers += strconv.Itoa(num)
+	// Generate and save new password
+	password := g.generatePassword()
+	if err := g.savePassword(password); err != nil {
+		log.Printf("Failed to save password: %v", err)
 	}
-	drawText(g.Screen, GAME_WIDTH/2-25, GAME_HEIGHT/2, GAME_WIDTH/2+25, GAME_HEIGHT/2,
-		"Game Over, Score: "+strconv.Itoa(g.Score)+" Numbers: "+numbers+" Play Again? y/n")
+
+}
+
+func (g *Game) DrawGameOver() {
+	g.Screen.Clear()
+
+	// Calculate center position
+	width, height := g.Screen.Size()
+	centerX := width / 2
+	centerY := height / 2
+
+	// Draw text
+	gameOverText := "GAME OVER"
+	scoreText := fmt.Sprintf("Final Score: %d", g.Score)
+	continueText := "Press Y to play again, N to quit"
+
+	// Draw game over box
+	boxStyle := g.defStyle
+	boxWidth := len(continueText) + 4 // Add padding
+	boxHeight := 7                    // Height for 3 lines of text plus padding
+
+	// Calculate box position
+	boxStartX := centerX - boxWidth/2
+	boxStartY := centerY - boxHeight/2
+
+	// Draw box borders and text
+	for x := boxStartX; x < boxStartX+boxWidth; x++ {
+		for y := boxStartY; y < boxStartY+boxHeight; y++ {
+			if x == boxStartX || x == boxStartX+boxWidth-1 ||
+				y == boxStartY || y == boxStartY+boxHeight-1 {
+				g.Screen.SetContent(x, y, '█', nil, boxStyle)
+			}
+		}
+	}
+
+	// Draw text centered in box
+	drawText(g.Screen,
+		centerX-len(gameOverText)/2, boxStartY+2,
+		centerX+len(gameOverText), boxStartY+2,
+		gameOverText, g.defStyle)
+
+	drawText(g.Screen,
+		centerX-len(scoreText)/2, boxStartY+3,
+		centerX+len(scoreText)/2, boxStartY+3,
+		scoreText, g.defStyle)
+
+	drawText(g.Screen,
+		centerX-len(continueText)/2, boxStartY+4,
+		centerX+len(continueText)/2, boxStartY+4,
+		continueText, g.defStyle)
+
+	g.Screen.Show()
+}
+
+func (g *Game) DrawMainMenu() {
+	g.Screen.Clear()
+	width, height := g.Screen.Size()
+	centerX := width / 2
+
+	// Draw SNEK header with different colors
+	headerText := "SNEK"
+	headerColors := []tcell.Color{
+		tcell.ColorGreen,
+		tcell.ColorYellow,
+		tcell.ColorRed,
+		tcell.ColorBlue,
+	}
+
+	headerY := height / 4
+	for i, char := range headerText {
+		style := tcell.StyleDefault.
+			Background(tcell.ColorBlack).
+			Foreground(headerColors[i])
+		g.Screen.SetContent(centerX-2+i, headerY, char, nil, style)
+	}
+
+	// Draw menu options
+	menuItems := []string{
+		"Start Game",
+		"Settings",
+		"Exit",
+	}
+
+	menuY := headerY + 3
+	for i, item := range menuItems {
+		style := tcell.StyleDefault.Background(tcell.ColorBlack)
+		if i == g.menuSelected {
+			style = style.Foreground(tcell.ColorYellow)
+			item = "> " + item + " <"
+		} else {
+			style = style.Foreground(tcell.ColorWhite)
+		}
+
+		drawText(g.Screen,
+			centerX-len(item)/2, menuY+i*2,
+			centerX+len(item)/2, menuY+i*2,
+			item, style)
+	}
+
 	g.Screen.Show()
 }
