@@ -12,20 +12,19 @@ import (
 )
 
 type Game struct {
-	Screen       tcell.Screen
-	snakeBody    SnakeBody
-	FoodPos      SnakePart
-	WallParts    []SnakePart
-	Score        int
-	GameOver     bool
-	snakeStyle   tcell.Style
-	foodStyle    tcell.Style
-	powerStyle   tcell.Style
-	wallStyle    tcell.Style
-	gridValues   map[SnakePart]int // Store grid numbers
-	collected    []int             // Store collected numbers
-	menuSelected int               // Track selected menu item
-	defStyle     tcell.Style
+	Screen     tcell.Screen
+	snakeBody  SnakeBody
+	FoodPos    SnakePart
+	WallParts  []SnakePart
+	Score      int
+	GameOver   bool
+	snakeStyle tcell.Style
+	foodStyle  tcell.Style
+	powerStyle tcell.Style
+	wallStyle  tcell.Style
+	gridValues map[SnakePart]int // Store grid numbers
+	collected  []int             // Store collected numbers
+	defStyle   tcell.Style
 }
 
 const (
@@ -244,7 +243,7 @@ func (g *Game) DrawGameOver() {
 
 	drawText(g.Screen,
 		centerX-len(scoreText)/2, boxStartY+3,
-		centerX+len(scoreText)/2, boxStartY+3,
+		centerX+len(scoreText), boxStartY+3,
 		scoreText, g.defStyle)
 
 	drawText(g.Screen,
@@ -276,29 +275,4 @@ func (g *Game) DrawMainMenu() {
 			Foreground(headerColors[i])
 		g.Screen.SetContent(centerX-2+i, headerY, char, nil, style)
 	}
-
-	// Draw menu options
-	menuItems := []string{
-		"Start Game",
-		"Settings",
-		"Exit",
-	}
-
-	menuY := headerY + 3
-	for i, item := range menuItems {
-		style := tcell.StyleDefault.Background(tcell.ColorBlack)
-		if i == g.menuSelected {
-			style = style.Foreground(tcell.ColorYellow)
-			item = "> " + item + " <"
-		} else {
-			style = style.Foreground(tcell.ColorWhite)
-		}
-
-		drawText(g.Screen,
-			centerX-len(item)/2, menuY+i*2,
-			centerX+len(item)/2, menuY+i*2,
-			item, style)
-	}
-
-	g.Screen.Show()
 }
